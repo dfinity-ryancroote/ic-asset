@@ -1,0 +1,3 @@
+[imports.storage]
+path = "../chunk.did"
+template = "agent.hbs"

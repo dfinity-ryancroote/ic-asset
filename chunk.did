@@ -1,0 +1,9 @@
+type upload_data = record { item: vec item; "blob": blob };
+type item = record { key: text; len: nat32; data_type: data_type };
+type data_type = variant { new; append };
+
+service : {
+  upload : (nat32, upload_data) -> ();
+  commit : () -> ();
+}
+

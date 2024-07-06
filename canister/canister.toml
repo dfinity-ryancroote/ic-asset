@@ -1,0 +1,3 @@
+[service]
+path = "../chunk.did"
+output_dir = "."
