@@ -14,8 +14,8 @@ function deploy(id, wasm, mode) {
     },
   );
 };
-
+let id = principal "bkyz2-fmaaa-aaaaa-qaaaq-cai";
 let wasm = file("../target/wasm32-unknown-unknown/release/chunked_map.wasm");
-deploy(principal "bkyz2-fmaaa-aaaaa-qaaaq-cai", wasm, variant { reinstall });
+deploy(id, wasm, variant { reinstall });
 
 

@@ -1,11 +1,12 @@
 use std::collections::BTreeMap;
-use serde_bytes::ByteBuf;
 use candid::{CandidType, Deserialize};
 use std::cell::RefCell;
+use percent_encoding::percent_decode_str;
+use std::borrow::Cow;
+use serde_bytes::{Bytes, ByteBuf};
 
 #[derive(CandidType, Deserialize)]
 pub struct UploadData {
-    // assume item is sorted by end_index
     pub item: Vec<Item>,
     pub blob: ByteBuf,
 }
@@ -16,11 +17,31 @@ pub struct Item {
     pub data_type: DataType,
 }
 #[derive(CandidType, Deserialize)]
+pub struct Metadata {
+    pub name: String,
+    pub size: candid::Nat,
+}
+#[derive(CandidType, Deserialize)]
 pub enum DataType {
     #[serde(rename = "new")]
     New,
     #[serde(rename = "append")]
     Append,
+}
+#[derive(CandidType, Deserialize)]
+pub struct HeaderField(pub String, pub String);
+//pub type HeaderField = (String, String);
+#[derive(CandidType, Deserialize)]
+pub struct HttpRequest {
+    pub url: String,
+    pub body: ByteBuf,
+    pub headers: Vec<HeaderField>,
+}
+#[derive(CandidType, Deserialize)]
+pub struct HttpResponse<'a> {
+    pub body: Cow<'a, Bytes>,
+    pub headers: Vec<HeaderField>,
+    pub status_code: u16,
 }
 
 #[derive(Default)]
@@ -47,6 +68,37 @@ impl State {
             }
         }
     }
+    fn list(&self) -> Vec<Metadata> {
+        self.map.iter().map(|(name, data)| Metadata {
+            name: name.clone(),
+            size: data.len().into(),
+        }).collect()
+    }
+    fn http_request<'a>(&'a self, req: HttpRequest) -> HttpResponse<'a> {
+        let path = match req.url.find('?') {
+            Some(i) => &req.url[..i],
+            None => &req.url,
+        };
+        match percent_decode_str(path).decode_utf8().map(|s| s.into_owned()) {
+            Ok(path) => match self.map.get(&path).or_else(|| self.map.get("index.html")) {
+                Some(blob) => HttpResponse {
+                    body: Cow::Borrowed(Bytes::new(blob)),
+                    headers: vec![],
+                    status_code: 200,
+                },
+                None => HttpResponse {
+                    body: Cow::Owned(format!("{path} not found").into_bytes().into()), //format!("{path} not found").as_bytes(),
+                    headers: vec![],
+                    status_code: 404,
+                },
+            },
+            Err(_) => HttpResponse {
+                body: Cow::Owned(format!("invalid path {path}").into_bytes().into()),
+                headers: vec![],
+                status_code: 400,
+            },
+        }
+    }
 }
 
 thread_local! {
@@ -56,16 +108,44 @@ thread_local! {
 fn upload(id: u32, data: UploadData) {
     STATE.with_borrow_mut(|state| {
         state.upload(id, data);
-    });
+    })
 }
 #[ic_cdk::update]
 fn commit() {
     STATE.with_borrow_mut(|state| {
         state.commit();
-    });
+    })
+}
+#[ic_cdk::query(manual_reply = true)]
+fn http_request(req: HttpRequest) {
+    STATE.with_borrow(|state| {
+        let res = state.http_request(req);
+        ic_cdk::api::call::reply((res,))
+    })
+}
+#[ic_cdk::query]
+fn list() -> Vec<Metadata> {
+    STATE.with_borrow(|state| state.list())
 }
 #[link_section = "icp:public candid:service"]
-pub static __SERVICE: [u8; 243] = *br#"type data_type = variant { new; append };
+pub static __SERVICE: [u8; 630] = *br#"type data_type = variant { new; append };
+type header_field = record { text; text };
+type http_request = record {
+  url : text;
+  body : blob;
+  headers : vec header_field;
+};
+type http_response = record {
+  body : blob;
+  headers : vec header_field;
+  status_code : nat16;
+};
 type item = record { key : text; len : nat32; data_type : data_type };
 type upload_data = record { "blob" : blob; item : vec item };
-service : { commit : () -> (); upload : (nat32, upload_data) -> () }"#;
+type metadata = record { name : text; size : nat };
+service : {
+  commit : () -> ();
+  http_request : (http_request) -> (http_response) query;
+  upload : (nat32, upload_data) -> ();
+  list : () -> (vec metadata) query;
+}"#;

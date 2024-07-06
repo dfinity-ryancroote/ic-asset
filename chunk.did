@@ -1,9 +1,16 @@
 type upload_data = record { item: vec item; "blob": blob };
 type item = record { key: text; len: nat32; data_type: data_type };
 type data_type = variant { new; append };
+type metadata = record { name: text; size: nat };
+
+type header_field = record { text; text };
+type http_request = record { url: text; body: blob; headers: vec header_field };
+type http_response = record { status_code: nat16; body: blob; headers: vec header_field };
 
 service : {
   upload : (nat32, upload_data) -> ();
   commit : () -> ();
+  list : () -> (vec metadata) query;
+  http_request : (http_request) -> (http_response) query;
 }
 
