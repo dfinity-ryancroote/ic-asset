@@ -1,3 +1,8 @@
 [imports.storage]
 path = "../chunk.did"
+methods = ["upload", "commit"]
 template = "agent.hbs"
+[imports.storage.bindgen]
+# TODO: add a top-level match
+data_type.attributes = "#[derive(CandidType, Deserialize, Debug, Clone)]"
+item.attributes = "#[derive(CandidType, Deserialize, Debug, Clone)]"

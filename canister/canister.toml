@@ -1,3 +1,11 @@
-[service]
+[imports.types]
 path = "../chunk.did"
-output_dir = "."
+methods = []
+[imports.types.bindgen]
+http_response.name = "HttpResponse<'a>"
+http_response.record.body.use_type = "std::borrow::Cow<'a, serde_bytes::Bytes> (no test)"
+
+#[imports.stub]
+#path = "../chunk.did"
+#template = "stub.hbs"
+

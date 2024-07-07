@@ -1,48 +1,11 @@
-use candid::{CandidType, Deserialize};
 use percent_encoding::percent_decode_str;
-use serde_bytes::{ByteBuf, Bytes};
+use serde_bytes::Bytes;
 use std::borrow::Cow;
 use std::cell::RefCell;
 use std::collections::BTreeMap;
 
-#[derive(CandidType, Deserialize)]
-pub struct UploadData {
-    pub item: Vec<Item>,
-    pub blob: ByteBuf,
-}
-#[derive(CandidType, Deserialize)]
-pub struct Item {
-    pub key: String,
-    pub len: u32,
-    pub data_type: DataType,
-}
-#[derive(CandidType, Deserialize)]
-pub struct Metadata {
-    pub name: String,
-    pub size: candid::Nat,
-}
-#[derive(CandidType, Deserialize)]
-pub enum DataType {
-    #[serde(rename = "new")]
-    New,
-    #[serde(rename = "append")]
-    Append,
-}
-#[derive(CandidType, Deserialize)]
-pub struct HeaderField(pub String, pub String);
-//pub type HeaderField = (String, String);
-#[derive(CandidType, Deserialize)]
-pub struct HttpRequest {
-    pub url: String,
-    pub body: ByteBuf,
-    pub headers: Vec<HeaderField>,
-}
-#[derive(CandidType, Deserialize)]
-pub struct HttpResponse<'a> {
-    pub body: Cow<'a, Bytes>,
-    pub headers: Vec<HeaderField>,
-    pub status_code: u16,
-}
+mod types;
+use types::*;
 
 #[derive(Default)]
 struct State {
@@ -93,7 +56,7 @@ impl State {
                     status_code: 200,
                 },
                 None => HttpResponse {
-                    body: Cow::Owned(format!("{path} not found").into_bytes().into()), //format!("{path} not found").as_bytes(),
+                    body: Cow::Owned(format!("{path} not found").into_bytes().into()),
                     headers: vec![],
                     status_code: 404,
                 },
