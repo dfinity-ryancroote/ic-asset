@@ -1,9 +1,9 @@
-use std::collections::BTreeMap;
 use candid::{CandidType, Deserialize};
-use std::cell::RefCell;
 use percent_encoding::percent_decode_str;
+use serde_bytes::{ByteBuf, Bytes};
 use std::borrow::Cow;
-use serde_bytes::{Bytes, ByteBuf};
+use std::cell::RefCell;
+use std::collections::BTreeMap;
 
 #[derive(CandidType, Deserialize)]
 pub struct UploadData {
@@ -69,17 +69,23 @@ impl State {
         }
     }
     fn list(&self) -> Vec<Metadata> {
-        self.map.iter().map(|(name, data)| Metadata {
-            name: name.clone(),
-            size: data.len().into(),
-        }).collect()
+        self.map
+            .iter()
+            .map(|(name, data)| Metadata {
+                name: name.clone(),
+                size: data.len().into(),
+            })
+            .collect()
     }
-    fn http_request<'a>(&'a self, req: HttpRequest) -> HttpResponse<'a> {
+    fn http_request(&self, req: HttpRequest) -> HttpResponse<'_> {
         let path = match req.url.find('?') {
             Some(i) => &req.url[..i],
             None => &req.url,
         };
-        match percent_decode_str(path).decode_utf8().map(|s| s.into_owned()) {
+        match percent_decode_str(path)
+            .decode_utf8()
+            .map(|s| s.into_owned())
+        {
             Ok(path) => match self.map.get(&path).or_else(|| self.map.get("index.html")) {
                 Some(blob) => HttpResponse {
                     body: Cow::Borrowed(Bytes::new(blob)),
