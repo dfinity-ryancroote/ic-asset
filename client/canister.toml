@@ -4,6 +4,7 @@ methods = ["upload", "commit", "list"]
 template = "agent.hbs"
 [imports.storage.bindgen]
 # TODO: add a top-level match
+size.nat.use_type = "u128 (no test)"
 timestamp.nat.use_type = "u128 (no test)"
 data_type.attributes = "#[derive(CandidType, Deserialize, Debug, Clone)]"
 item.attributes = "#[derive(CandidType, Deserialize, Debug, Clone)]"

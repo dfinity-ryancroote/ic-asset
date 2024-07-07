@@ -8,6 +8,8 @@ use ic_cdk::api::call::CallResult as Result;
 pub enum DataType {
     #[serde(rename = "new")]
     New,
+    #[serde(rename = "delete")]
+    Delete,
     #[serde(rename = "append")]
     Append,
 }

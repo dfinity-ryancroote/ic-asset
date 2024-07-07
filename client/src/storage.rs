@@ -7,13 +7,15 @@ type Result<T> = std::result::Result<T, ic_agent::AgentError>;
 #[derive(CandidType, Deserialize)]
 pub struct Metadata {
     pub name: String,
-    pub size: candid::Nat,
+    pub size: u128,
     pub timestamp: u128,
 }
 #[derive(CandidType, Deserialize, Debug, Clone)]
 pub enum DataType {
     #[serde(rename = "new")]
     New,
+    #[serde(rename = "delete")]
+    Delete,
     #[serde(rename = "append")]
     Append,
 }

@@ -1,6 +1,6 @@
 type upload_data = record { item: vec item; "blob": blob };
 type item = record { key: text; len: nat32; timestamp: nat; data_type: data_type };
-type data_type = variant { new; append };
+type data_type = variant { new; append; delete };
 type metadata = record { name: text; size: nat; timestamp: nat };
 
 type header_field = record { text; text };

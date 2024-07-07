@@ -39,7 +39,9 @@ impl State {
                         content: blob.collect(),
                         timestamp: item.timestamp,
                     })),
+                    (DataType::Delete, Entry::Occupied(v)) => drop(v.remove_entry()),
                     (DataType::Append, Entry::Vacant(_)) => panic!("append to non-exist key"),
+                    (DataType::Delete, Entry::Vacant(_)) => panic!("delete non-exist key"),
                 }
             }
         }
@@ -111,7 +113,7 @@ fn list() -> Vec<Metadata> {
     STATE.with_borrow(|state| state.list())
 }
 #[link_section = "icp:public candid:service"]
-pub static __SERVICE: [u8; 663] = *br#"type data_type = variant { new; append };
+pub static __SERVICE: [u8; 671] = *br#"type data_type = variant { new; append; delete };
 type header_field = record { text; text };
 type http_request = record {
   url : text;

@@ -2,6 +2,7 @@ use anyhow::Result;
 use clap::Parser;
 use futures::future::try_join_all;
 use ic_agent::Agent;
+use std::collections::BTreeMap;
 use std::fs;
 use std::io::Read;
 use std::path::PathBuf;
@@ -26,6 +27,7 @@ async fn main() -> Result<()> {
         candid::Principal::from_text("bkyz2-fmaaa-aaaaa-qaaaq-cai")?,
         &agent,
     );
+    let mut existing = list(&service).await?;
     let mut size = CHUNK_SIZE;
     let mut blob = Vec::with_capacity(CHUNK_SIZE);
     let mut item = Vec::new();
@@ -36,15 +38,21 @@ async fn main() -> Result<()> {
         .filter_map(|e| e.ok())
         .filter(|e| !e.file_type().is_dir())
     {
+        let key = format!("/{}", p.path().strip_prefix(&opts.path)?.display());
         let metadata = fs::metadata(p.path())?;
         let timestamp = metadata
             .modified()?
             .duration_since(SystemTime::UNIX_EPOCH)?
             .as_millis();
         let mut len = metadata.len() as usize;
+        if let Some(i) = existing.remove(&key) {
+            if i.timestamp == timestamp && i.size as usize == len {
+                println!("skipping {key}");
+                continue;
+            }
+        }
         let mut f = fs::File::open(p.path())?;
         let mut data_type = storage::DataType::New;
-        let key = format!("/{}", p.path().strip_prefix(&opts.path)?.display());
         println!("{} {} {}", key, p.path().display(), len);
         while size < len {
             let mut buf = vec![0; size];
@@ -73,6 +81,15 @@ async fn main() -> Result<()> {
             timestamp,
         });
     }
+    for i in existing.into_values() {
+        println!("deleting {}", i.name);
+        item.push(storage::Item {
+            key: i.name,
+            data_type: storage::DataType::Delete,
+            len: 0,
+            timestamp: 0,
+        })
+    }
     futures.push(upload_blob(&service, id, blob, item));
     try_join_all(futures).await?;
     service.commit().await?;
@@ -96,4 +113,8 @@ async fn upload_blob(
         )
         .await?;
     Ok(())
+}
+async fn list(service: &storage::Service<'_>) -> Result<BTreeMap<String, storage::Metadata>> {
+    let res = service.list().await?;
+    Ok(res.into_iter().map(|m| (m.name.clone(), m)).collect())
 }
