@@ -9,8 +9,13 @@ use types::*;
 
 #[derive(Default)]
 struct State {
-    map: BTreeMap<String, Vec<u8>>,
+    map: BTreeMap<String, File>,
     buffer: BTreeMap<u32, UploadData>,
+}
+#[derive(Default)]
+struct File {
+    timestamp: candid::Nat,
+    content: Vec<u8>,
 }
 
 impl State {
@@ -23,9 +28,17 @@ impl State {
             for item in data.item {
                 let blob = data.blob.drain(..item.len as usize);
                 match (item.data_type, self.map.entry(item.key)) {
-                    (DataType::Append, Entry::Occupied(mut v)) => v.get_mut().extend(blob),
-                    (DataType::New, Entry::Occupied(mut v)) => *v.get_mut() = blob.collect(),
-                    (DataType::New, Entry::Vacant(v)) => drop(v.insert(blob.collect())),
+                    (DataType::Append, Entry::Occupied(mut v)) => v.get_mut().content.extend(blob),
+                    (DataType::New, Entry::Occupied(mut v)) => {
+                        *v.get_mut() = File {
+                            content: blob.collect(),
+                            timestamp: item.timestamp,
+                        }
+                    }
+                    (DataType::New, Entry::Vacant(v)) => drop(v.insert(File {
+                        content: blob.collect(),
+                        timestamp: item.timestamp,
+                    })),
                     (DataType::Append, Entry::Vacant(_)) => panic!("append to non-exist key"),
                 }
             }
@@ -36,7 +49,8 @@ impl State {
             .iter()
             .map(|(name, data)| Metadata {
                 name: name.clone(),
-                size: data.len().into(),
+                size: data.content.len().into(),
+                timestamp: data.timestamp.clone(),
             })
             .collect()
     }
@@ -50,8 +64,8 @@ impl State {
             .map(|s| s.into_owned())
         {
             Ok(path) => match self.map.get(&path).or_else(|| self.map.get("index.html")) {
-                Some(blob) => HttpResponse {
-                    body: Cow::Borrowed(Bytes::new(blob)),
+                Some(f) => HttpResponse {
+                    body: Cow::Borrowed(Bytes::new(&f.content)),
                     headers: vec![],
                     status_code: 200,
                 },
@@ -97,7 +111,7 @@ fn list() -> Vec<Metadata> {
     STATE.with_borrow(|state| state.list())
 }
 #[link_section = "icp:public candid:service"]
-pub static __SERVICE: [u8; 630] = *br#"type data_type = variant { new; append };
+pub static __SERVICE: [u8; 663] = *br#"type data_type = variant { new; append };
 type header_field = record { text; text };
 type http_request = record {
   url : text;
@@ -109,9 +123,9 @@ type http_response = record {
   headers : vec header_field;
   status_code : nat16;
 };
-type item = record { key : text; len : nat32; data_type : data_type };
+type item = record { key : text; len : nat32; timestamp: nat; data_type : data_type };
 type upload_data = record { "blob" : blob; item : vec item };
-type metadata = record { name : text; size : nat };
+type metadata = record { name : text; size : nat; timestamp : nat };
 service : {
   commit : () -> ();
   http_request : (http_request) -> (http_response) query;

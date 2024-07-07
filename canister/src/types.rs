@@ -1,6 +1,8 @@
 // This is an experimental feature to generate Rust binding from Candid.
 // You may want to manually adjust some of the types.
-use candid::{self, CandidType, Deserialize};
+#![allow(dead_code, unused_imports)]
+use candid::{self, CandidType, Deserialize, Principal};
+use ic_cdk::api::call::CallResult as Result;
 
 #[derive(CandidType, Deserialize)]
 pub enum DataType {
@@ -27,12 +29,14 @@ pub struct HttpResponse<'a> {
 pub struct Item {
     pub key: String,
     pub len: u32,
+    pub timestamp: candid::Nat,
     pub data_type: DataType,
 }
 #[derive(CandidType, Deserialize)]
 pub struct Metadata {
     pub name: String,
     pub size: candid::Nat,
+    pub timestamp: candid::Nat,
 }
 #[derive(CandidType, Deserialize)]
 pub struct UploadData {

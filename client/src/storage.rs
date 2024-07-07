@@ -4,6 +4,12 @@
 use candid::{self, CandidType, Decode, Deserialize, Encode, Principal};
 type Result<T> = std::result::Result<T, ic_agent::AgentError>;
 
+#[derive(CandidType, Deserialize)]
+pub struct Metadata {
+    pub name: String,
+    pub size: candid::Nat,
+    pub timestamp: u128,
+}
 #[derive(CandidType, Deserialize, Debug, Clone)]
 pub enum DataType {
     #[serde(rename = "new")]
@@ -15,6 +21,7 @@ pub enum DataType {
 pub struct Item {
     pub key: String,
     pub len: u32,
+    pub timestamp: u128,
     pub data_type: DataType,
 }
 #[derive(CandidType, Deserialize)]
@@ -34,6 +41,11 @@ impl<'a> Service<'a> {
             .call_and_wait()
             .await?;
         Ok(Decode!(&bytes)?)
+    }
+    pub async fn list(&self) -> Result<Vec<Metadata>> {
+        let args = Encode!()?;
+        let bytes = self.1.query(&self.0, "list").with_arg(args).call().await?;
+        Ok(Decode!(&bytes, Vec<Metadata>)?)
     }
     pub async fn upload(&self, arg0: u32, arg1: UploadData) -> Result<()> {
         let args = Encode!(&arg0, &arg1)?;

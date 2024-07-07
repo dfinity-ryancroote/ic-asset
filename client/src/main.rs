@@ -5,6 +5,7 @@ use ic_agent::Agent;
 use std::fs;
 use std::io::Read;
 use std::path::PathBuf;
+use std::time::SystemTime;
 use walkdir::WalkDir;
 
 mod storage;
@@ -35,7 +36,12 @@ async fn main() -> Result<()> {
         .filter_map(|e| e.ok())
         .filter(|e| !e.file_type().is_dir())
     {
-        let mut len = fs::metadata(p.path())?.len() as usize;
+        let metadata = fs::metadata(p.path())?;
+        let timestamp = metadata
+            .modified()?
+            .duration_since(SystemTime::UNIX_EPOCH)?
+            .as_millis();
+        let mut len = metadata.len() as usize;
         let mut f = fs::File::open(p.path())?;
         let mut data_type = storage::DataType::New;
         let key = format!("/{}", p.path().strip_prefix(&opts.path)?.display());
@@ -49,6 +55,7 @@ async fn main() -> Result<()> {
                 key: key.clone(),
                 data_type,
                 len: size as u32,
+                timestamp,
             });
             futures.push(upload_blob(&service, id, blob.clone(), item.clone()));
             blob.clear();
@@ -63,6 +70,7 @@ async fn main() -> Result<()> {
             key,
             data_type,
             len: len as u32,
+            timestamp,
         });
     }
     futures.push(upload_blob(&service, id, blob, item));
