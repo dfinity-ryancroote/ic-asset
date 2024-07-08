@@ -16,6 +16,8 @@ const CHUNK_SIZE: usize = 2000; //2_000_000;
 #[derive(Parser)]
 struct Opts {
     path: PathBuf,
+    #[clap(short, long, default_value = "bkyz2-fmaaa-aaaaa-qaaaq-cai")]
+    canister_id: candid::Principal,
 }
 
 #[tokio::main(flavor = "multi_thread", worker_threads = 10)]
@@ -23,10 +25,7 @@ async fn main() -> Result<()> {
     let opts = Opts::parse();
     let agent = Agent::builder().with_url("http://localhost:4943").build()?;
     agent.fetch_root_key().await?;
-    let service = storage::Service(
-        candid::Principal::from_text("bkyz2-fmaaa-aaaaa-qaaaq-cai")?,
-        &agent,
-    );
+    let service = storage::Service(opts.canister_id, &agent);
     let mut existing = list(&service).await?;
     let mut size = CHUNK_SIZE;
     let mut blob = Vec::with_capacity(CHUNK_SIZE);
