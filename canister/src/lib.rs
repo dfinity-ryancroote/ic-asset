@@ -65,7 +65,7 @@ impl State {
             .decode_utf8()
             .map(|s| s.into_owned())
         {
-            Ok(path) => match self.map.get(&path).or_else(|| self.map.get("index.html")) {
+            Ok(path) => match self.map.get(&path).or_else(|| self.map.get("/index.html")) {
                 Some(f) => HttpResponse {
                     body: Cow::Borrowed(Bytes::new(&f.content)),
                     headers: vec![],

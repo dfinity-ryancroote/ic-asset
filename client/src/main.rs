@@ -11,7 +11,7 @@ use walkdir::WalkDir;
 
 mod storage;
 
-const CHUNK_SIZE: usize = 2000; //2_000_000;
+const CHUNK_SIZE: usize = 2_000_000;
 
 #[derive(Parser)]
 struct Opts {
