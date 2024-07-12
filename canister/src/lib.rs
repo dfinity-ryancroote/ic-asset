@@ -15,6 +15,7 @@ struct State {
 #[derive(Default)]
 struct File {
     timestamp: candid::Nat,
+    content_type: String,
     content: Vec<u8>,
 }
 
@@ -33,11 +34,13 @@ impl State {
                         *v.get_mut() = File {
                             content: blob.collect(),
                             timestamp: item.timestamp,
+                            content_type: item.content_type,
                         }
                     }
                     (DataType::New, Entry::Vacant(v)) => drop(v.insert(File {
                         content: blob.collect(),
                         timestamp: item.timestamp,
+                        content_type: item.content_type,
                     })),
                     (DataType::Delete, Entry::Occupied(v)) => drop(v.remove_entry()),
                     (DataType::Append, Entry::Vacant(_)) => panic!("append to non-exist key"),
@@ -66,11 +69,14 @@ impl State {
             .map(|s| s.into_owned())
         {
             Ok(path) => match self.map.get(&path).or_else(|| self.map.get("/index.html")) {
-                Some(f) => HttpResponse {
-                    body: Cow::Borrowed(Bytes::new(&f.content)),
-                    headers: vec![],
-                    status_code: 200,
-                },
+                Some(f) => {
+                    let headers = vec![HeaderField("Content-Type".into(), f.content_type.clone())];
+                    HttpResponse {
+                        body: Cow::Borrowed(Bytes::new(&f.content)),
+                        headers,
+                        status_code: 200,
+                    }
+                }
                 None => HttpResponse {
                     body: Cow::Owned(format!("{path} not found").into_bytes().into()),
                     headers: vec![],
@@ -113,7 +119,7 @@ fn list() -> Vec<Metadata> {
     STATE.with_borrow(|state| state.list())
 }
 #[link_section = "icp:public candid:service"]
-pub static __SERVICE: [u8; 671] = *br#"type data_type = variant { new; append; delete };
+pub static __SERVICE: [u8; 692] = *br#"type data_type = variant { new; append; delete };
 type header_field = record { text; text };
 type http_request = record {
   url : text;
@@ -125,7 +131,7 @@ type http_response = record {
   headers : vec header_field;
   status_code : nat16;
 };
-type item = record { key : text; len : nat32; timestamp: nat; data_type : data_type };
+type item = record { key : text; content_type : text; len : nat32; timestamp: nat; data_type : data_type };
 type upload_data = record { "blob" : blob; item : vec item };
 type metadata = record { name : text; size : nat; timestamp : nat };
 service : {

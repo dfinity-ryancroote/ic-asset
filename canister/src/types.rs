@@ -31,6 +31,7 @@ pub struct HttpResponse<'a> {
 pub struct Item {
     pub key: String,
     pub len: u32,
+    pub content_type: String,
     pub timestamp: candid::Nat,
     pub data_type: DataType,
 }

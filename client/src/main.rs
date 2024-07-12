@@ -16,7 +16,7 @@ const CHUNK_SIZE: usize = 2_000_000;
 #[derive(Parser)]
 struct Opts {
     path: PathBuf,
-    #[clap(short, long, default_value = "bkyz2-fmaaa-aaaaa-qaaaq-cai")]
+    #[clap(short, long)]
     canister_id: candid::Principal,
 }
 
@@ -38,6 +38,9 @@ async fn main() -> Result<()> {
         .filter(|e| !e.file_type().is_dir())
     {
         let key = format!("/{}", p.path().strip_prefix(&opts.path)?.display());
+        let content_type = mime_guess::from_path(&key)
+            .first_or_text_plain()
+            .to_string();
         let metadata = fs::metadata(p.path())?;
         let timestamp = metadata
             .modified()?
@@ -63,6 +66,7 @@ async fn main() -> Result<()> {
                 data_type,
                 len: size as u32,
                 timestamp,
+                content_type: content_type.clone(),
             });
             futures.push(upload_blob(&service, id, blob.clone(), item.clone()));
             blob.clear();
@@ -78,6 +82,7 @@ async fn main() -> Result<()> {
             data_type,
             len: len as u32,
             timestamp,
+            content_type,
         });
     }
     for i in existing.into_values() {
@@ -87,6 +92,7 @@ async fn main() -> Result<()> {
             data_type: storage::DataType::Delete,
             len: 0,
             timestamp: 0,
+            content_type: "".to_string(),
         })
     }
     futures.push(upload_blob(&service, id, blob, item));

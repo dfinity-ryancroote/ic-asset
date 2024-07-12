@@ -23,6 +23,7 @@ pub enum DataType {
 pub struct Item {
     pub key: String,
     pub len: u32,
+    pub content_type: String,
     pub timestamp: u128,
     pub data_type: DataType,
 }
