@@ -50,8 +50,8 @@ impl<'a> Service<'a> {
         let bytes = self.1.query(&self.0, "list").with_arg(args).call().await?;
         Ok(Decode!(&bytes, Vec<Metadata>)?)
     }
-    pub async fn upload(&self, arg0: u32, arg1: UploadData) -> Result<()> {
-        let args = Encode!(&arg0, &arg1)?;
+    pub async fn upload(&self, arg0: u32, arg1: UploadData, arg2: bool) -> Result<()> {
+        let args = Encode!(&arg0, &arg1, &arg2)?;
         let bytes = self
             .1
             .update(&self.0, "upload")

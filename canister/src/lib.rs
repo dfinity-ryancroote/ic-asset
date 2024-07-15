@@ -96,9 +96,13 @@ thread_local! {
     static STATE: RefCell<State> = RefCell::new(State::default());
 }
 #[ic_cdk::update]
-fn upload(id: u32, data: UploadData) {
+fn upload(id: u32, data: UploadData, is_final: bool) {
     STATE.with_borrow_mut(|state| {
         state.upload(id, data);
+        if id == 0 && is_final {
+            // If upload contains more than 1 chunk, we cannot guarantee all chunks are already arrived by now.
+            state.commit();
+        }
     })
 }
 #[ic_cdk::update]
@@ -119,7 +123,7 @@ fn list() -> Vec<Metadata> {
     STATE.with_borrow(|state| state.list())
 }
 #[link_section = "icp:public candid:service"]
-pub static __SERVICE: [u8; 692] = *br#"type data_type = variant { new; append; delete };
+pub static __SERVICE: [u8; 698] = *br#"type data_type = variant { new; append; delete };
 type header_field = record { text; text };
 type http_request = record {
   url : text;
@@ -137,6 +141,6 @@ type metadata = record { name : text; size : nat; timestamp : nat };
 service : {
   commit : () -> ();
   http_request : (http_request) -> (http_response) query;
-  upload : (nat32, upload_data) -> ();
+  upload : (nat32, upload_data, bool) -> ();
   list : () -> (vec metadata) query;
 }"#;

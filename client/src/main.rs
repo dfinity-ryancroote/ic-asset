@@ -68,7 +68,7 @@ async fn main() -> Result<()> {
                 timestamp,
                 content_type: content_type.clone(),
             });
-            futures.push(upload_blob(&service, id, blob.clone(), item.clone()));
+            futures.push(upload_blob(&service, id, blob.clone(), item.clone(), false));
             blob.clear();
             item.clear();
             size = CHUNK_SIZE;
@@ -95,9 +95,11 @@ async fn main() -> Result<()> {
             content_type: "".to_string(),
         })
     }
-    futures.push(upload_blob(&service, id, blob, item));
+    futures.push(upload_blob(&service, id, blob, item, true));
     try_join_all(futures).await?;
-    service.commit().await?;
+    if id > 0 {
+        service.commit().await?;
+    }
     Ok(())
 }
 
@@ -106,6 +108,7 @@ async fn upload_blob(
     id: u32,
     blob: Vec<u8>,
     item: Vec<storage::Item>,
+    is_final: bool,
 ) -> Result<()> {
     eprintln!("{:?}", item);
     service
@@ -115,6 +118,7 @@ async fn upload_blob(
                 blob: blob.into(),
                 item,
             },
+            is_final,
         )
         .await?;
     Ok(())
