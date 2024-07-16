@@ -18,13 +18,18 @@ struct Opts {
     path: PathBuf,
     #[clap(short, long)]
     canister_id: candid::Principal,
+    #[clap(short, long)]
+    replica: Option<String>,
 }
 
 #[tokio::main(flavor = "multi_thread", worker_threads = 10)]
 async fn main() -> Result<()> {
     let opts = Opts::parse();
-    let agent = Agent::builder().with_url("http://localhost:4943").build()?;
-    agent.fetch_root_key().await?;
+    let url = opts.replica.unwrap_or("https://icp0.io".to_string());
+    let agent = Agent::builder().with_url(&url).build()?;
+    if url != "https://icp0.io" {
+        agent.fetch_root_key().await?;
+    }
     let service = storage::Service(opts.canister_id, &agent);
     let mut existing = list(&service).await?;
     let mut size = CHUNK_SIZE;
