@@ -81,7 +81,7 @@ jobs:
       - name: Executable runs
         run: |
           chmod +x chunked-sync
-          ./chunked-sync --version
+          ./chunked-sync --help
   publish:
     needs: test
     name: Publish ${{ matrix.asset_name }}
