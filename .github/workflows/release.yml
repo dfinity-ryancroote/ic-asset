@@ -49,7 +49,7 @@ jobs:
         with:
           use-cross: true
           command: build
-          args: --target arm-unknown-linux-gnueabihf --release --locked
+          args: -p chunked-sync --target arm-unknown-linux-gnueabihf --release --locked
       - name: 'Upload assets'
         uses: actions/upload-artifact@v3
         with:
