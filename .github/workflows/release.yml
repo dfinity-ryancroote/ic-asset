@@ -102,6 +102,4 @@ jobs:
         uses: "softprops/action-gh-release@v1"
         with:
          files: |
-           chunked-sync-linux64
-           chunked-sync-arm32
-           chunked-sync-macos
+           ${{ matrix.asset_name }}
