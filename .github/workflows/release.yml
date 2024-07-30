@@ -98,8 +98,10 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: ${{ matrix.asset_name }}
-      - name: Release
-        uses: "softprops/action-gh-release@v1"
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@2.9.0
         with:
-         files: |
-           ${{ matrix.asset_name }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: chunked-sync
+          asset_name: ${{ matrix.asset_name }}
+          tag: ${{ github.ref }}
