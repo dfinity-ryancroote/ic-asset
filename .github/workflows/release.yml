@@ -42,7 +42,7 @@ jobs:
           target: arm-unknown-linux-gnueabihf
       - name: Build
         if: matrix.name != 'arm'
-        run: cargo build --release --locked
+        run: cargo build -p chunked-sync --release --locked
       - name: Cross build
         if: matrix.name == 'arm'
         uses: actions-rs/cargo@v1
